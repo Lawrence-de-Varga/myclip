@@ -68,6 +68,7 @@ def modify_phrase(keys):
     update_phrase_file()
 
 
+@should_i_exit(phrases)
 def modify_key(keys):
     for key in keys:
         try:
