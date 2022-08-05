@@ -52,14 +52,16 @@ def add_phrase(phrase):
         update_phrase_file()
 
 @should_i_exit(phrases)
-def modify_phrase(key):
+def modify_phrase(keys):
     """Allows for the modification of a phrase."""
-    if key[0] not in phrases.keys():
-        key_error(key[0])
-        return
-    new_phrase = m.prompt("What would you like the phrase to be changed to?")
+    for key in keys:
+        if key not in list(phrases.keys()):
+            key_error(key)
+        else:
+            print(f"Modifying {key}")
+            new_phrase = m.prompt("What would you like the phrase to be changed to?")
+            phrases[key] = new_phrase
 
-    phrases[key[0]] = new_phrase
     update_phrase_file()
 
 def modify_key(keys):
@@ -116,7 +118,7 @@ def help():
     print("Run with no options to go to the main menu.")
     print("Use -s [key] to select a phrase.")
     print("Use -a [phrase] to add a phrase.")
-    print("Use -m [key] to modify a phrase.")
+    print("Use -m [key(s)] to modify any number of phrases.")
     print("Use -M [key(s)] to modify any number of keys.")
     print("Use -d [key(s)] to delete any number of phrases")
     print("Use -p to select phrases to display.")
@@ -152,7 +154,7 @@ def menu():
 # func_dict is used in the processing of user supplied command line options
 func_dict = {'-s' : ["select_phrase(select_key('select'))", "select_phrase([argv[2]])"], 
              '-a' : ["add_phrase(m.prompt('What phrase would you like to add?'))", "add_phrase(' '.join(argv[2:]))"],
-             '-m' : ["modify_phrase(select_key('modify'))", "modify_phrase([argv[2]])"],
+             '-m' : ["modify_phrase(select_key('modify'))", "modify_phrase(argv[2:])"],
              '-M' : ["modify_key(m.select_options_wrap(list(phrases.keys()), 'key(s)', 'modify'))",
                      "modify_key(argv[2:])"],
              '-d' : ["delete_phrase(select_key('delete'))", "delete_phrase(argv[2:])"],
