@@ -61,6 +61,17 @@ def modify_phrase(key):
 
     phrases[key[0]] = new_phrase
     update_phrase_file()
+
+def modify_key(keys):
+    for key in keys:
+        try:
+            print(f"Modifying {key}.")
+            add_phrase(phrases[key])
+            phrases.pop(key)
+            update_phrase_file()
+        except KeyError:
+            key_error(key)
+
     
 @should_i_exit(phrases)
 def select_phrase(key):
@@ -93,7 +104,7 @@ def print_phrases(keys):
     """ Allows for the selection and displaty of any number of phrases."""
     for key in keys:
         try: 
-            print(f"'{key.ljust(longest_key)}' - corresponds to this phrase: {phrases[key]}")
+            print(f"{key.ljust(longest_key)} - corresponds to this phrase: {phrases[key]}")
         except KeyError:
             key_error(key) 
 
@@ -106,7 +117,8 @@ def help():
     print("Use -s [key] to select a phrase.")
     print("Use -a [phrase] to add a phrase.")
     print("Use -m [key] to modify a phrase.")
-    print("Use -d [key] to delete any number of phrases")
+    print("Use -M [key(s)] to modify any number of keys.")
+    print("Use -d [key(s)] to delete any number of phrases")
     print("Use -p to select phrases to display.")
     print("Use -p [key(s)] to display any number of  phrase.")
     print("Use -P to display all phrases.")
@@ -117,7 +129,7 @@ def menu():
     run = True
 
     while run:
-        action = m.select_options_wrap(['select', 'add', 'modify', 'delete', 'display'], 'action', 'take', every=False)[0]
+        action = m.select_options_wrap(['select', 'add', 'modify', 'modify-key', 'delete', 'display'], 'action', 'take', every=False)[0]
 
         if action == 'select':
             select_phrase(select_key('select'))
@@ -125,10 +137,12 @@ def menu():
             add_phrase(m.prompt("What phrase would you like to add?"))
         elif action == 'modify':
             modify_phrase(select_key('modify'))
+        elif action == 'modify-key':
+            modify_key(m.select_options_wrap(list(phrases.keys()), 'key(s)', 'modify'))
         elif action == 'delete':
             delete_phrase(select_key('delete'))
         elif action == 'display':
-            print_phrases(select_options_wrap(list(phrases.keys()), 'phrase', 'display'))
+            print_phrases(m.select_options_wrap(list(phrases.keys()), 'phrase', 'display'))
         elif action == 'exit':
             print("Goodbye.")
             run = False
@@ -139,6 +153,8 @@ def menu():
 func_dict = {'-s' : ["select_phrase(select_key('select'))", "select_phrase([argv[2]])"], 
              '-a' : ["add_phrase(m.prompt('What phrase would you like to add?'))", "add_phrase(' '.join(argv[2:]))"],
              '-m' : ["modify_phrase(select_key('modify'))", "modify_phrase([argv[2]])"],
+             '-M' : ["modify_key(m.select_options_wrap(list(phrases.keys()), 'key(s)', 'modify'))",
+                     "modify_key(argv[2:])"],
              '-d' : ["delete_phrase(select_key('delete'))", "delete_phrase(argv[2:])"],
              '-p' : ["print_phrases(select_key('display'))", "print_phrases(argv[2:])"],
              '-P' : ["print_phrases(list(phrases.keys()))"],
