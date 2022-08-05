@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+from sys import argv
+import pyperclip 
+#from menus import *
+import menus as m
+from decorators import should_i_exit
+import json
+
+########################### Data Setup #########################################################################
+try:
+    with open("/home/ldv/scripts/myclip/phrases.txt" ) as f:
+        text = f.read()
+
+    phrases = json.loads(text)
+except json.decoder.JSONDecodeError:
+    phrases = {}
+
+def update_phrase_file():
+    with open("/home/ldv/scripts/myclip/phrases.txt", 'w') as f:
+        f.write(json.dumps(phrases))
+
+
+########################### Phrase Actions #########################################################################
+
+def select_key(action):
+    return m.select_options_wrap(list(phrases.keys()), 'phrase', action, every=False)
+
+def add_phrase(phrase):
+
+    key = m.prompt("What would you like the key for the phrase to be?")
+
+    if key in phrases.keys():
+        print(f"\"{key}\" is already being used for another phrase.")
+        action = m.select_options_wrap(['overwrite', 'change-key'], 'action', 'take', every=False)[0]
+
+        if action == 'overwrite':
+            phrases[key] = phrase
+            update_phrase_file()
+        elif action == 'change-key':
+            add_phrase(phrase)
+        else:
+            return
+    else:
+        phrases[key] = phrase
+        update_phrase_file()
+
+@should_i_exit(phrases)
+def modify_phrase(key):
+    new_phrase = m.prompt("What would you like the phrase to be changed to?")
+
+    phrases[key[0]] = new_phrase
+    update_phrase_file()
+    
+@should_i_exit(phrases)
+def select_phrase(key):
+    try:
+        pyperclip.copy(phrases[key[0]])
+    except KeyError:
+        print(f"Sorry \"{key[0]}\" is not in the phrase book.")
+
+@should_i_exit(phrases)
+def delete_phrase(keys):
+    for key in keys: 
+        phrases.pop(key)
+
+    update_phrase_file()
+
+try:
+    longest_key = len(sorted(list(phrases.keys()), key=len)[-1])
+except IndexError:
+    longest_key = 0
+
+def print_phrases():
+    if not phrases:
+        print("There are no phrases.")
+    else:
+        for key, phrase in phrases.items():
+            print(f"'{key.ljust(longest_key)}' - corresponds to this phrase: {phrase}")
+
+    print()
+
+########################### Auxilliary Functions #########################################################################
+
+def help():
+    print("Use -s [key] to select a phrase.")
+    print("Use -a [phrase] to add a phrase.")
+    print("Use -m [key] to modify a phrase.")
+    print("Use -d [key] to delete any number of phrases")
+    print("Run with no options to go to the main menu.")
+    print("Use -p to display all available phrases and keys.")
+    print("use -h to print this help text.")
+
+def menu():
+    run = True
+
+    while run:
+        action = m.select_options_wrap(['select', 'add', 'modify', 'delete', 'display'], 'action', 'take', every=False)[0]
+
+        if action == 'select':
+            select_phrase(select_key('select'))
+        elif action == 'add':
+            add_phrase(m.prompt("What phrase would you like to add?"))
+        elif action == 'modify':
+            modify_phrase(select_key('modify'))
+        elif action == 'delete':
+            delete_phrase(select_key('delete'))
+        elif action == 'display':
+            print_phrases()
+        elif action == 'exit':
+            print("Goodbye.")
+            run = False
+        else:
+            print(f"Sorry \"{action}\" is not an option.")
+
+func_dict = {'-s' : ["select_phrase(select_key('select'))", "select_phrase([argv[2]])"], 
+             '-a' : ["add_phrase(m.prompt('What phrase would you like to add?'))", "add_phrase(argv[2])"],
+             '-m' : ["modify_phrase(select_key('modify'))", "modify_phrase([argv[2]])"],
+             '-d' : ["delete_phrase(select_key('delete'))", "delete_phrase([argv[2]])"],
+             '-p' : ["print_phrases()"],
+             '-h' : ["help()"]}
+
+def process_argv():
+    if len(argv) == 2:
+        try: 
+            eval(func_dict[argv[1]][0])
+        except KeyError:
+            print(f"Sorry \"{argv[1]}\" is not a valid argument. Use -h to see options.")
+    elif len(argv) == 3:
+        try:
+            eval(func_dict[argv[1]][1])
+        except KeyError:
+            print(f"Sorry \"{argv[1]}\" is not a valid argument. Use -h to see options.")
+    else:
+        menu()
+
+process_argv()
+
+
+
+
+
+
+
+
+
