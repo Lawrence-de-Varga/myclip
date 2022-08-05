@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 from sys import argv
 import pyperclip 
-#from menus import *
 import menus as m
 from decorators import should_i_exit
 import json
 
 ########################### Data Setup #########################################################################
+# Collects saved phrases into the phrases dict.
 try:
     with open("/home/ldv/scripts/myclip/phrases.txt" ) as f:
         text = f.read()
 
     phrases = json.loads(text)
+
 except json.decoder.JSONDecodeError:
     phrases = {}
 
 def update_phrase_file():
+    """Rewrites the phrases file any time the phrases dict is modified."""
     with open("/home/ldv/scripts/myclip/phrases.txt", 'w') as f:
         f.write(json.dumps(phrases))
 
@@ -23,13 +25,15 @@ def update_phrase_file():
 ########################### Phrase Actions #########################################################################
 
 def select_key(action):
+    """Presents and allows for the selection of a key or keys by the user."""
     return m.select_options_wrap(list(phrases.keys()), 'phrase', action, every=False)
 
 def key_error(key):
     print(f"Sorry \"{key}\" is not a valid key.")
 
-def add_phrase(phrase):
 
+def add_phrase(phrase):
+    """ Adds a new phrase to the dict and the phrases file, allows for the overwirting of extant keys."""
     key = m.prompt("What would you like the key for the phrase to be?")
 
     if key in phrases.keys():
@@ -49,6 +53,7 @@ def add_phrase(phrase):
 
 @should_i_exit(phrases)
 def modify_phrase(key):
+    """Allows for the modification of a phrase."""
     if key[0] not in phrases.keys():
         key_error(key[0])
         return
@@ -59,6 +64,7 @@ def modify_phrase(key):
     
 @should_i_exit(phrases)
 def select_phrase(key):
+    """ Copies a phrase to the users clipboard for use elsewhere."""
     try:
         pyperclip.copy(phrases[key[0]])
     except KeyError:
@@ -66,6 +72,7 @@ def select_phrase(key):
 
 @should_i_exit(phrases)
 def delete_phrase(keys):
+    """Deletes any number of keys supplied by the user."""
     for key in keys: 
         try:
             phrases.pop(key)
@@ -75,6 +82,7 @@ def delete_phrase(keys):
 
     update_phrase_file()
 
+# longest_key is used to neatly format the phrases when displayed to the user.
 try:
     longest_key = len(sorted(list(phrases.keys()), key=len)[-1])
 except IndexError:
@@ -82,6 +90,7 @@ except IndexError:
 
 @should_i_exit(phrases)
 def print_phrases(keys):
+    """ Allows for the selection and displaty of any number of phrases."""
     for key in keys:
         try: 
             print(f"'{key.ljust(longest_key)}' - corresponds to this phrase: {phrases[key]}")
@@ -93,17 +102,18 @@ def print_phrases(keys):
 ########################### Auxilliary Functions #########################################################################
 
 def help():
+    print("Run with no options to go to the main menu.")
     print("Use -s [key] to select a phrase.")
     print("Use -a [phrase] to add a phrase.")
     print("Use -m [key] to modify a phrase.")
     print("Use -d [key] to delete any number of phrases")
-    print("Run with no options to go to the main menu.")
     print("Use -p to select phrases to display.")
-    print("Use -p [key] to display a particular phrase.")
+    print("Use -p [key(s)] to display any number of  phrase.")
     print("Use -P to display all phrases.")
     print("use -h to print this help text.")
 
 def menu():
+
     run = True
 
     while run:
@@ -125,6 +135,7 @@ def menu():
         else:
             print(f"Sorry \"{action}\" is not an option.")
 
+# func_dict is used in the processing of user supplied command line options
 func_dict = {'-s' : ["select_phrase(select_key('select'))", "select_phrase([argv[2]])"], 
              '-a' : ["add_phrase(m.prompt('What phrase would you like to add?'))", "add_phrase(' '.join(argv[2:]))"],
              '-m' : ["modify_phrase(select_key('modify'))", "modify_phrase([argv[2]])"],
@@ -133,7 +144,9 @@ func_dict = {'-s' : ["select_phrase(select_key('select'))", "select_phrase([argv
              '-P' : ["print_phrases(list(phrases.keys()))"],
              '-h' : ["help()"]}
 
+
 def process_argv():
+    """ Processes the command line arguments supplied by the user."""
     if len(argv) == 2:
         try: 
             eval(func_dict[argv[1]][0])
