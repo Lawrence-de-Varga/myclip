@@ -25,6 +25,9 @@ def update_phrase_file():
 def select_key(action):
     return m.select_options_wrap(list(phrases.keys()), 'phrase', action, every=False)
 
+def key_error(key):
+    print(f"Sorry \"{key}\" is not a valid key.")
+
 def add_phrase(phrase):
 
     key = m.prompt("What would you like the key for the phrase to be?")
@@ -46,6 +49,9 @@ def add_phrase(phrase):
 
 @should_i_exit(phrases)
 def modify_phrase(key):
+    if key[0] not in phrases.keys():
+        key_error(key[0])
+        return
     new_phrase = m.prompt("What would you like the phrase to be changed to?")
 
     phrases[key[0]] = new_phrase
@@ -56,12 +62,16 @@ def select_phrase(key):
     try:
         pyperclip.copy(phrases[key[0]])
     except KeyError:
-        print(f"Sorry \"{key[0]}\" is not in the phrase book.")
+        key_error(key[0])
 
 @should_i_exit(phrases)
 def delete_phrase(keys):
     for key in keys: 
-        phrases.pop(key)
+        try:
+            phrases.pop(key)
+        except KeyError:
+            key_error(key)
+            return
 
     update_phrase_file()
 
@@ -70,12 +80,13 @@ try:
 except IndexError:
     longest_key = 0
 
-def print_phrases():
-    if not phrases:
-        print("There are no phrases.")
-    else:
-        for key, phrase in phrases.items():
-            print(f"'{key.ljust(longest_key)}' - corresponds to this phrase: {phrase}")
+@should_i_exit(phrases)
+def print_phrases(keys):
+    for key in keys:
+        try: 
+            print(f"'{key.ljust(longest_key)}' - corresponds to this phrase: {phrases[key]}")
+        except KeyError:
+            key_error(key) 
 
     print()
 
@@ -87,7 +98,9 @@ def help():
     print("Use -m [key] to modify a phrase.")
     print("Use -d [key] to delete any number of phrases")
     print("Run with no options to go to the main menu.")
-    print("Use -p to display all available phrases and keys.")
+    print("Use -p to select phrases to display.")
+    print("Use -p [key] to display a particular phrase.")
+    print("Use -P to display all phrases.")
     print("use -h to print this help text.")
 
 def menu():
@@ -105,7 +118,7 @@ def menu():
         elif action == 'delete':
             delete_phrase(select_key('delete'))
         elif action == 'display':
-            print_phrases()
+            print_phrases(select_options_wrap(list(phrases.keys()), 'phrase', 'display'))
         elif action == 'exit':
             print("Goodbye.")
             run = False
@@ -113,10 +126,11 @@ def menu():
             print(f"Sorry \"{action}\" is not an option.")
 
 func_dict = {'-s' : ["select_phrase(select_key('select'))", "select_phrase([argv[2]])"], 
-             '-a' : ["add_phrase(m.prompt('What phrase would you like to add?'))", "add_phrase(argv[2])"],
+             '-a' : ["add_phrase(m.prompt('What phrase would you like to add?'))", "add_phrase(' '.join(argv[2:]))"],
              '-m' : ["modify_phrase(select_key('modify'))", "modify_phrase([argv[2]])"],
-             '-d' : ["delete_phrase(select_key('delete'))", "delete_phrase([argv[2]])"],
-             '-p' : ["print_phrases()"],
+             '-d' : ["delete_phrase(select_key('delete'))", "delete_phrase(argv[2:])"],
+             '-p' : ["print_phrases(select_key('display'))", "print_phrases(argv[2:])"],
+             '-P' : ["print_phrases(list(phrases.keys()))"],
              '-h' : ["help()"]}
 
 def process_argv():
@@ -125,7 +139,7 @@ def process_argv():
             eval(func_dict[argv[1]][0])
         except KeyError:
             print(f"Sorry \"{argv[1]}\" is not a valid argument. Use -h to see options.")
-    elif len(argv) == 3:
+    elif len(argv) >= 3:
         try:
             eval(func_dict[argv[1]][1])
         except KeyError:
